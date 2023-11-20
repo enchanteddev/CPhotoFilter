@@ -4,13 +4,31 @@
 #include "matrix.h"
 
 
-char* concat(const char *s1, const char *s2)
-{
-    char *result = malloc(strlen(s1) + strlen(s2) + 1);
-    strcpy(result, s1);
-    strcat(result, s2);
-    return result;
+char* changeFilenamePrefix(char path[], char prefix[]) {
+    char *lastSlash = strrchr(path, '/');
+    
+    if (lastSlash != NULL) {
+        size_t filenamePos = lastSlash - path + 1;
+        char *filename = path + filenamePos;
+        size_t newFilenameLen = strlen(prefix) + strlen(filename) + 1;
+        char *newPath = (char *)malloc(strlen(path) + newFilenameLen);
+        
+        if (newPath != NULL) {
+            strncpy(newPath, path, filenamePos);
+            strcat(newPath, prefix);
+            strcat(newPath, filename);
+            
+            return newPath;
+            
+            free(newPath);
+        } else {
+            fprintf(stderr, "Memory allocation failed\n");
+        }
+    } else {
+        fprintf(stderr, "Invalid path format\n");
+    }
 }
+
 
 
 void BW(Matrix imageR, Matrix imageG, Matrix imageB){
@@ -49,11 +67,20 @@ Matrix BlurMatrix(Matrix imageR, int px){
     Matrix blurMatrix;
     blurMatrix = new_matrix(y, x);
 
+    // int first_value = 0;
     for (int i = 0; i < y; i++){
+        int down = i >= y - px ? y - 1 : i + px;
+        int up   = i <  px     ? 0     : i - px;
         int net_value = 0;
+        // if (first_value != 0){
+        //     printf("HEY");
+        //     for (int l = 0; l <= px; l++){
+        //         int r = i >= y - px ? 0 : get_value(imageR, down, l);
+        //         int l_ = up == 0    ? 0 : get_value(imageR, up - 1, l);
+        //         net_value += r - l_;
+        //     }
+        // }
         for (int j = 0; j < x; j++){
-            int up      = i <  px     ? 0     : i - px;
-            int down    = i >= y - px ? y - 1 : i + px;
             int left    = j <  px     ? 0     : j - px;
             int right   = j >= x - px ? x - 1 : j + px;
             
@@ -71,8 +98,9 @@ Matrix BlurMatrix(Matrix imageR, int px){
                     net_value += r - l_;
                 }
             }
-
-            set_value(blurMatrix, i, j, net_value / cells);            
+            
+            set_value(blurMatrix, i, j, net_value / cells);   
+            // if (j == 0) first_value = net_value;
         }
     }
     return blurMatrix;
@@ -88,7 +116,7 @@ void Blur(Matrix imageR, Matrix imageG, Matrix imageB, int px, char* fp){
     Matrix bB = BlurMatrix(imageB, px);
 
     FILE *writefp;
-    writefp = fopen(concat("blur", fp), "w");
+    writefp = fopen(changeFilenamePrefix(fp, "blur2"), "w");
     fprintf(writefp, "P3\n");
     fprintf(writefp, "%d %d\n%d\n", x, y, 255);
     for (int i = 0; i < y; i++){
